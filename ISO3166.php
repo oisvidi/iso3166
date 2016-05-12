@@ -16,6 +16,61 @@ class ISO3166 implements \IteratorAggregate, DataProvider
     const KEY_NUMERIC = 'numeric';
 
     /**
+     * Holds indexed lookup array for alpha2 codes, or null if not populated.
+     * @var array|null
+     */
+    private $alpha2;
+
+    /**
+     * Holds indexed lookup array for alpha3 codes, or null if not populated.
+     * @var array|null
+     */
+    private $alpha3;
+
+    /**
+     * Holds indexed lookup array for numeric codes, or null if not populated.
+     * @var array|null
+     */
+    private $numeric;
+
+    /**
+     * ISO3166 constructor.
+     *
+     * @param bool $populateLookupTables (optional) default false. Calls method populateLookupTables if true.
+     * @uses ISO3166::populateLookupTables()
+     */
+    public function __construct($populateLookupTables = false)
+    {
+        if ($populateLookupTables) {
+            $this->populateLookupTables();
+        } else {
+            $this->alpha2 = null;
+            $this->alpha3 = null;
+            $this->numeric = null;
+        }
+    }
+
+    /**
+     * Makes indexed copies of the country table for faster lookup.
+     * Makes indexes by alpha2 and alpha3.
+     *
+     * @api
+     */
+    public function populateLookupTables()
+    {
+        $this->alpha2 = [];
+        $this->alpha3 = [];
+        $this->numeric = [];
+
+        // PHP has copy on write and data only changes on git pull so less memory consumption without references
+        foreach ($this->countries as $country) {
+            $this->alpha2[$country[self::KEY_ALPHA2]] = $country;
+            $this->alpha3[$country[self::KEY_ALPHA3]] = $country;
+            $this->numeric[$country[self::KEY_NUMERIC]] = $country;
+        }
+    }
+
+    /**
      * Lookup ISO3166-1 data by alpha2 identifier.
      *
      * @api
@@ -31,6 +86,15 @@ class ISO3166 implements \IteratorAggregate, DataProvider
     {
         if (!preg_match('/^[a-zA-Z]{2}$/', $alpha2)) {
             throw new \DomainException('Not a valid alpha2: '.$alpha2);
+        }
+
+        if (!empty($this->alpha2)) {
+            $alpha2 = strtoupper($alpha2);
+            if (isset($this->alpha2[$alpha2])) {
+                return $this->alpha2[$alpha2];
+            }
+
+            throw new \OutOfBoundsException('ISO 3166-1 does not contain: ' . $alpha2);
         }
 
         return $this->get($alpha2);
@@ -54,6 +118,15 @@ class ISO3166 implements \IteratorAggregate, DataProvider
             throw new \DomainException('Not a valid alpha3: '.$alpha3);
         }
 
+        if (!empty($this->alpha3)) {
+            $alpha3 = strtoupper($alpha3);
+            if (isset($this->alpha3[$alpha3])) {
+                return $this->alpha3[$alpha3];
+            }
+
+            throw new \OutOfBoundsException('ISO 3166-1 does not contain: ' . $alpha3);
+        }
+
         return $this->get($alpha3);
     }
 
@@ -73,6 +146,14 @@ class ISO3166 implements \IteratorAggregate, DataProvider
     {
         if (!preg_match('/^[0-9]{3}$/', $numeric)) {
             throw new \DomainException('Not a valid numeric: '.$numeric);
+        }
+
+        if (!empty($this->numeric)) {
+            if (isset($this->numeric[$numeric])) {
+                return $this->numeric[$numeric];
+            }
+
+            throw new \OutOfBoundsException('ISO 3166-1 does not contain: ' . $numeric);
         }
 
         return $this->get($numeric);

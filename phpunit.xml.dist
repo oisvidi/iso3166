@@ -11,6 +11,7 @@
   <testsuites>
     <testsuite name="ISO3166 Test Suite">
       <file>ISO3166Test.php</file>
+      <file>ISO3166LookupTablesTest.php</file>
     </testsuite>
   </testsuites>
 
